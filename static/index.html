@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cash Flow Runway Advisor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..700;1,14..32,300..500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #0B1221;
+  --surf:     #121D31;
+  --surf2:    #1A2840;
+  --surf3:    #223050;
+  --border:   #2A3A52;
+  --border2:  #364a66;
+  --text:     #E8EDF5;
+  --muted:    #7A90AD;
+  --dim:      #4A607A;
+  --blue:     #4C8EF5;
+  --blue-dim: rgba(76,142,245,.12);
+  --green:    #22C97B;
+  --green-dim:rgba(34,201,123,.1);
+  --amber:    #F5A623;
+  --amber-dim:rgba(245,166,35,.1);
+  --red:      #F05252;
+  --red-dim:  rgba(240,82,82,.1);
+  --mono: 'JetBrains Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── HEADER ──────────────────────────────────────────────────── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 56px;
+  background: var(--surf);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  gap: 12px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -.01em;
+  flex-shrink: 0;
+}
+
+.logo-mark {
+  width: 30px; height: 30px;
+  background: linear-gradient(135deg, #3B72E8, #22C97B);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+}
+
+.company-chip {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--surf2);
+  border: 1px solid var(--border);
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: .02em;
+}
+
+.runway-widget {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.runway-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  transition: all .3s;
+}
+
+.runway-pill.safe   { color: var(--green); border-color: rgba(34,201,123,.35); background: var(--green-dim); }
+.runway-pill.warn   { color: var(--amber); border-color: rgba(245,166,35,.35); background: var(--amber-dim); }
+.runway-pill.danger { color: var(--red);   border-color: rgba(240,82,82,.35);  background: var(--red-dim); }
+.runway-pill.loading { color: var(--muted); border-color: var(--border); }
+
+.runway-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.runway-dot.pulse { animation: pulse-glow 2s ease-in-out infinite; }
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .35; }
+}
+
+/* ── LAYOUT ──────────────────────────────────────────────────── */
+.layout {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── CHAT PANEL ───────────────────────────────────────────────── */
+.chat-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-right: 1px solid var(--border);
+}
+
+#messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  scroll-behavior: smooth;
+}
+
+#messages::-webkit-scrollbar { width: 4px; }
+#messages::-webkit-scrollbar-track { background: transparent; }
+#messages::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ── MESSAGE BUBBLES ─────────────────────────────────────────── */
+.msg { display: flex; flex-direction: column; max-width: 680px; }
+.msg.user { align-self: flex-end; align-items: flex-end; }
+.msg.agent { align-self: flex-start; align-items: flex-start; max-width: 100%; }
+
+.msg-meta {
+  font-size: 10px;
+  color: var(--dim);
+  margin-bottom: 5px;
+  font-weight: 500;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+/* User bubble */
+.user-bubble {
+  background: var(--blue);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 16px 16px 4px 16px;
+  font-size: 14px;
+  line-height: 1.55;
+  max-width: 540px;
+}
+
+/* Agent card */
+.agent-card {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: 4px 14px 14px 14px;
+  overflow: hidden;
+  width: 100%;
+}
+
+/* ── THINKING STATE ──────────────────────────────────────────── */
+.thinking-bar {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.thinking-dots {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.thinking-dots span {
+  width: 5px; height: 5px;
+  background: var(--blue);
+  border-radius: 50%;
+  display: inline-block;
+  animation: bounce-dot .8s ease-in-out infinite;
+}
+.thinking-dots span:nth-child(2) { animation-delay: .15s; }
+.thinking-dots span:nth-child(3) { animation-delay: .3s; }
+
+@keyframes bounce-dot {
+  0%, 100% { transform: translateY(0); opacity: .4; }
+  50%       { transform: translateY(-4px); opacity: 1; }
+}
+
+/* ── TOOL CALLS ──────────────────────────────────────────────── */
+.tools-bar {
+  padding: 10px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tool-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-family: var(--mono);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border2);
+  color: var(--muted);
+  transition: all .25s;
+}
+
+.tool-pill.running {
+  border-color: rgba(76,142,245,.5);
+  color: var(--blue);
+  background: var(--blue-dim);
+}
+
+.tool-pill.done {
+  border-color: rgba(34,201,123,.4);
+  color: var(--green);
+  background: var(--green-dim);
+}
+
+.tool-pill.error {
+  border-color: rgba(240,82,82,.4);
+  color: var(--red);
+  background: var(--red-dim);
+}
+
+.spin {
+  width: 8px; height: 8px;
+  border: 1.5px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin .5s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.check-icon { font-size: 9px; }
+
+/* ── ANSWER BODY ─────────────────────────────────────────────── */
+.answer-body {
+  padding: 18px 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.section-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 10px;
+}
+
+/* Numbers grid */
+.numbers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 8px;
+}
+
+.metric-card {
+  background: var(--surf2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 11px 13px;
+}
+
+.metric-label {
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-bottom: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.metric-value {
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--mono);
+  line-height: 1;
+}
+
+.metric-value.green { color: var(--green); }
+.metric-value.amber { color: var(--amber); }
+.metric-value.red   { color: var(--red);   }
+.metric-value.blue  { color: var(--blue);  }
+
+.metric-unit {
+  font-size: 11px;
+  color: var(--dim);
+  font-family: var(--mono);
+  margin-top: 3px;
+}
+
+.metric-delta {
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* Scenario table */
+.scenario-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.scenario-table th {
+  text-align: left;
+  padding: 6px 10px;
+  background: var(--surf2);
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 11px;
+  border-bottom: 1px solid var(--border);
+}
+
+.scenario-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.scenario-table tr:last-child td { border-bottom: none; }
+.scenario-table tr:hover td { background: var(--surf2); }
+
+/* Trade-offs list */
+.tradeoffs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.tradeoff-item {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+  padding-left: 14px;
+  position: relative;
+}
+
+.tradeoff-item::before {
+  content: '›';
+  position: absolute;
+  left: 0;
+  color: var(--blue);
+  font-weight: 600;
+}
+
+/* Risks */
+.risks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.risk-item {
+  display: flex;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 7px;
+  border-left: 3px solid;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.risk-item.high   { border-color: var(--red);   background: var(--red-dim);   color: #e0a0a0; }
+.risk-item.medium { border-color: var(--amber);  background: var(--amber-dim); color: #d4b07a; }
+.risk-item.low    { border-color: var(--blue);   background: var(--blue-dim);  color: #8ab0e0; }
+
+.risk-tag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 2px;
+  opacity: .75;
+  font-family: var(--mono);
+}
+
+/* Recommendation */
+.rec-box {
+  background: linear-gradient(135deg, rgba(76,142,245,.07), rgba(34,201,123,.06));
+  border: 1px solid rgba(76,142,245,.22);
+  border-radius: 9px;
+  padding: 13px 15px;
+  font-size: 13.5px;
+  line-height: 1.65;
+}
+.rec-box p { margin: 0 0 8px; }
+.rec-box p:last-child { margin-bottom: 0; }
+.rec-box ul { margin: 4px 0 8px; padding-left: 22px; }
+.rec-box li { margin-bottom: 4px; }
+.rec-box strong { color: var(--text); font-weight: 600; }
+
+/* Clarify / OOS */
+.clarify-card {
+  padding: 16px;
+}
+
+.clarify-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--amber);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.clarify-q {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 7px 12px;
+  border-left: 2px solid var(--border2);
+  margin: 5px 0;
+  line-height: 1.5;
+}
+
+.oos-card {
+  padding: 14px 16px;
+}
+
+.oos-header {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--amber);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 7px;
+}
+
+.oos-text {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+/* Error card */
+.error-card {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--red);
+}
+
+/* Raw fallback */
+.raw-text {
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Cost meta bar */
+.meta-bar {
+  padding: 8px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  font-size: 10.5px;
+  color: var(--dim);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--mono);
+}
+
+.meta-item strong {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* ── SIDEBAR ─────────────────────────────────────────────────── */
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--surf);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow-y: auto;
+}
+
+.sidebar-section {
+  padding: 18px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-title {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--dim);
+  margin-bottom: 12px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.stat-label {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.stat-value {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--mono);
+  color: var(--text);
+}
+
+.stat-value.green { color: var(--green); }
+.stat-value.amber { color: var(--amber); }
+.stat-value.red   { color: var(--red); }
+
+/* Runway arc */
+.runway-arc-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0 12px;
+}
+
+.arc-svg { overflow: visible; }
+
+.arc-bg   { fill: none; stroke: var(--surf3); stroke-width: 8; stroke-linecap: round; }
+.arc-fill { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dasharray .8s ease, stroke .4s; }
+
+.arc-label {
+  font-size: 22px;
+  font-weight: 700;
+  font-family: var(--mono);
+  fill: var(--text);
+}
+
+.arc-sub {
+  font-size: 11px;
+  fill: var(--muted);
+}
+
+.threshold-line {
+  font-size: 10px;
+  fill: var(--amber);
+  text-anchor: middle;
+}
+
+.suggestion-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.chip {
+  font-size: 11.5px;
+  padding: 7px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .15s;
+  background: transparent;
+  text-align: left;
+  line-height: 1.4;
+}
+
+.chip:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+  background: var(--blue-dim);
+}
+
+/* ── INPUT AREA ──────────────────────────────────────────────── */
+.input-wrap {
+  flex-shrink: 0;
+  padding: 14px 20px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--surf);
+}
+
+.input-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  background: var(--surf2);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 10px 12px;
+  transition: border-color .2s;
+}
+
+.input-row:focus-within {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(76,142,245,.08);
+}
+
+#question {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  resize: none;
+  min-height: 22px;
+  max-height: 120px;
+  line-height: 1.5;
+}
+
+#question::placeholder { color: var(--dim); }
+
+#send {
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  transition: opacity .15s, transform .1s;
+  flex-shrink: 0;
+  align-self: flex-end;
+}
+
+#send:hover:not(:disabled) { opacity: .9; }
+#send:active:not(:disabled) { transform: scale(.97); }
+#send:disabled { opacity: .35; cursor: not-allowed; }
+
+.input-hint {
+  font-size: 10.5px;
+  color: var(--dim);
+  text-align: center;
+  margin-top: 8px;
+}
+
+/* ── EMPTY STATE ─────────────────────────────────────────────── */
+#empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.empty-icon { font-size: 36px; margin-bottom: 4px; }
+.empty-title { font-size: 18px; font-weight: 600; letter-spacing: -.02em; }
+.empty-sub { font-size: 13px; color: var(--muted); max-width: 340px; line-height: 1.6; margin-top: 4px; }
+
+/* ── RESPONSIVE ──────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .sidebar { display: none; }
+  header .company-chip { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">📈</div>
+    Cash Flow Runway
+  </div>
+  <span class="company-chip">OrbitSaaS · Oct 2024 – Apr 2026</span>
+  <div class="runway-widget">
+    <div class="runway-pill loading" id="runway-pill">
+      <div class="runway-dot pulse"></div>
+      <span id="runway-label">Loading…</span>
+    </div>
+  </div>
+</header>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- CHAT PANEL -->
+  <div class="chat-panel">
+    <div id="messages">
+      <div id="empty-state">
+        <div class="empty-icon">💬</div>
+        <div class="empty-title">Ask about your runway</div>
+        <div class="empty-sub">Powered by Claude + deterministic finance tools. Every number is traced to a tool output — no hallucinated figures.</div>
+      </div>
+    </div>
+
+    <div class="input-wrap">
+      <div class="input-row">
+        <textarea id="question" rows="1"
+          placeholder="e.g. Can I afford to hire a $140k engineer in Q2 if MegaCorp pays late again?"
+          autocomplete="off"></textarea>
+        <button id="send" onclick="sendQuestion()">Send</button>
+      </div>
+      <div class="input-hint">Enter ↵ to send · Shift+Enter for newline</div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Current Snapshot</div>
+
+      <div class="runway-arc-wrap">
+        <svg class="arc-svg" viewBox="0 0 120 72" width="160" height="96">
+          <path class="arc-bg" d="M 15 65 A 45 45 0 0 1 105 65" />
+          <path class="arc-fill" id="arc-fill" d="M 15 65 A 45 45 0 0 1 105 65"
+                stroke="var(--green)"
+                stroke-dasharray="0 142" />
+          <text class="arc-label" x="60" y="60" text-anchor="middle" id="arc-num">—</text>
+          <text class="arc-sub"  x="60" y="72" text-anchor="middle">months runway</text>
+        </svg>
+      </div>
+
+      <div class="stat-row">
+        <span class="stat-label">Cash balance</span>
+        <span class="stat-value" id="sb-cash">—</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Net burn / mo</span>
+        <span class="stat-value" id="sb-burn">—</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Safety threshold</span>
+        <span class="stat-value amber">6 mo</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Hire $140k impact</span>
+        <span class="stat-value" id="sb-hire">—</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Try asking…</div>
+      <div class="suggestion-chips" id="chips">
+        <button class="chip" onclick="setQ(this)">What is my current runway?</button>
+        <button class="chip" onclick="setQ(this)">Compare hiring one $140k engineer in Q2 vs two in Q3 if MegaCorp pays 45 days late.</button>
+        <button class="chip" onclick="setQ(this)">If I cut marketing 30%, how much runway do I gain and what growth risk should I expect?</button>
+        <button class="chip" onclick="setQ(this)">Should I raise capital now or wait until Q4?</button>
+        <button class="chip" onclick="setQ(this)">What was my burn rate in Q3 2023?</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── STATE ────────────────────────────────────────────────────────
+let busy = false;
+
+// ── INIT: load baseline snapshot ────────────────────────────────
+(async () => {
+  try {
+    const r = await fetch('/api/status');
+    if (!r.ok) return;
+    const d = await r.json();
+    updateRunwayUI(d.runway_months, d.below_safety_threshold);
+    updateSidebar(d);
+  } catch {}
+})();
+
+// ── HELPERS ──────────────────────────────────────────────────────
+function fmt_mo(v) {
+  if (v == null) return '—';
+  return Number(v).toFixed(1) + ' mo';
+}
+function fmt_usd(v) {
+  if (v == null) return '—';
+  const n = Number(v);
+  if (n >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return '$' + Math.round(n/1e3) + 'k';
+  return '$' + n.toFixed(0);
+}
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function updateRunwayUI(months, belowThreshold) {
+  const pill  = document.getElementById('runway-pill');
+  const label = document.getElementById('runway-label');
+  if (months == null) { pill.className='runway-pill loading'; label.textContent='—'; return; }
+  const m = Number(months);
+  const cls = m >= 9 ? 'safe' : m >= 5 ? 'warn' : 'danger';
+  pill.className = 'runway-pill ' + cls;
+  label.textContent = m.toFixed(1) + ' mo runway';
+  // arc
+  const pct = Math.min(1, m / 18);
+  const ARC_LEN = 142;
+  const fill = document.getElementById('arc-fill');
+  fill.setAttribute('stroke-dasharray', `${pct * ARC_LEN} ${ARC_LEN}`);
+  fill.setAttribute('stroke', m >= 9 ? 'var(--green)' : m >= 5 ? 'var(--amber)' : 'var(--red)');
+  document.getElementById('arc-num').textContent = m.toFixed(1);
+}
+
+function updateSidebar(d) {
+  const safe = e => e ? e.textContent = '—' : null;
+  const el = id => document.getElementById(id);
+  if (d.cash_balance != null) {
+    el('sb-cash').textContent = fmt_usd(d.cash_balance);
+    el('sb-cash').className = 'stat-value';
+  }
+  if (d.monthly_net_burn != null) {
+    el('sb-burn').textContent = fmt_usd(d.monthly_net_burn) + '/mo';
+    el('sb-burn').className = 'stat-value amber';
+  }
+  if (d.hire_140k_runway != null) {
+    const v = Number(d.hire_140k_runway);
+    el('sb-hire').textContent = fmt_mo(v);
+    el('sb-hire').className = 'stat-value ' + (v >= 6 ? 'green' : v >= 3 ? 'amber' : 'red');
+  }
+  if (d.runway_months != null) updateRunwayUI(d.runway_months, d.below_safety_threshold);
+}
+
+function setQ(btn) {
+  document.getElementById('question').value = btn.textContent;
+  document.getElementById('question').focus();
+  autoResize(document.getElementById('question'));
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+document.getElementById('question').addEventListener('input', e => autoResize(e.target));
+document.getElementById('question').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendQuestion(); }
+});
+
+// ── MESSAGES ─────────────────────────────────────────────────────
+function getMessages() { return document.getElementById('messages'); }
+
+function hideEmpty() {
+  const es = document.getElementById('empty-state');
+  if (es) es.remove();
+}
+
+function appendUserMsg(text) {
+  hideEmpty();
+  const div = document.createElement('div');
+  div.className = 'msg user';
+  div.innerHTML = `<div class="msg-meta">You</div><div class="user-bubble">${esc(text)}</div>`;
+  getMessages().appendChild(div);
+  scrollDown();
+  return div;
+}
+
+function appendAgentShell() {
+  const div = document.createElement('div');
+  div.className = 'msg agent';
+  div.innerHTML = `
+    <div class="msg-meta">Runway Advisor</div>
+    <div class="agent-card" id="acard-${++agentCardN}">
+      <div class="thinking-bar">
+        <div class="thinking-dots"><span></span><span></span><span></span></div>
+        Thinking…
+      </div>
+      <div class="tools-bar" id="tools-${agentCardN}" style="display:none"></div>
+    </div>`;
+  getMessages().appendChild(div);
+  scrollDown();
+  return div;
+}
+
+let agentCardN = 0;
+let currentCard = null;
+let currentToolsBar = null;
+let activePill = null;
+
+function scrollDown() {
+  const m = getMessages();
+  m.scrollTop = m.scrollHeight;
+}
+
+// ── TOOL PILL MANAGEMENT ─────────────────────────────────────────
+const TOOL_LABELS = {
+  'query_financials': '⬡ query_financials',
+  'calculate_runway': '◎ calculate_runway',
+  'simulate_scenario': '⟳ simulate_scenario',
+};
+
+function showToolsBar() {
+  if (!currentToolsBar) return;
+  currentToolsBar.style.display = 'flex';
+}
+
+function addToolPill(toolName) {
+  showToolsBar();
+  const pill = document.createElement('span');
+  pill.className = 'tool-pill running';
+  pill.id = 'pill-' + toolName + '-' + Date.now();
+  pill.innerHTML = `<span class="spin"></span> ${TOOL_LABELS[toolName] || toolName}`;
+  currentToolsBar.appendChild(pill);
+  activePill = pill;
+  scrollDown();
+  return pill;
+}
+
+function finishPill(pill, isError=false) {
+  if (!pill) return;
+  pill.className = 'tool-pill ' + (isError ? 'error' : 'done');
+  pill.innerHTML = `<span class="check-icon">${isError ? '✕' : '✓'}</span> ${pill.textContent.trim()}`;
+}
+
+// ── ANSWER PARSER ─────────────────────────────────────────────────
+
+function extractTag(text, tag) {
+  const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, 'i');
+  const m = text.match(re);
+  return m ? m[1].trim() : null;
+}
+
+// Parse markdown-style **Section:** ... blocks (fallback when the model
+// doesn't wrap sections in XML). Returns {numbers, tradeoffs, risks, rec, lead}.
+function extractMarkdownSections(text) {
+  if (!text) return null;
+  // Recognise headings like **Numbers:**, ## Numbers, **Numbers**, Numbers:, etc.
+  const SECTIONS = [
+    { key: 'numbers',   re: /(?:^|\n)\s*(?:\*\*|##\s*|#\s*)?\s*(?:key\s+)?numbers\s*\**\s*:?\s*\**/i },
+    { key: 'tradeoffs', re: /(?:^|\n)\s*(?:\*\*|##\s*|#\s*)?\s*trade[-\s]?offs?\s*\**\s*:?\s*\**/i },
+    { key: 'risks',     re: /(?:^|\n)\s*(?:\*\*|##\s*|#\s*)?\s*(?:risk\s+flags?|risks?)\s*\**\s*:?\s*\**/i },
+    { key: 'rec',       re: /(?:^|\n)\s*(?:\*\*|##\s*|#\s*)?\s*recommendations?\s*\**\s*:?\s*\**/i },
+  ];
+  // Find each section's start position
+  const positions = [];
+  for (const s of SECTIONS) {
+    const m = text.match(s.re);
+    if (m) positions.push({ key: s.key, start: m.index, headLen: m[0].length });
+  }
+  if (positions.length === 0) return null;
+  positions.sort((a,b) => a.start - b.start);
+
+  const out = { lead: text.slice(0, positions[0].start).trim() };
+  for (let i = 0; i < positions.length; i++) {
+    const p = positions[i];
+    const next = i+1 < positions.length ? positions[i+1].start : text.length;
+    out[p.key] = text.slice(p.start + p.headLen, next).trim().replace(/^[*\s:]+/, '');
+  }
+  return out;
+}
+
+// Convert simple markdown (bold, lists) to safe HTML for prose blocks.
+function mdToHtml(text) {
+  if (!text) return '';
+  // Escape first, then put back our allowed inline formatting
+  let html = esc(text);
+  // **bold**
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  // bullets
+  const lines = html.split('\n');
+  const out = []; let inList = false;
+  for (const ln of lines) {
+    const li = ln.match(/^\s*[-–*]\s+(.+)/);
+    const numLi = ln.match(/^\s*\d+\.\s+(.+)/);
+    if (li || numLi) {
+      if (!inList) { out.push('<ul>'); inList = true; }
+      out.push('<li>' + (li ? li[1] : numLi[1]) + '</li>');
+    } else {
+      if (inList) { out.push('</ul>'); inList = false; }
+      if (ln.trim()) out.push('<p>' + ln + '</p>');
+    }
+  }
+  if (inList) out.push('</ul>');
+  return out.join('');
+}
+
+function parseNumbers(raw) {
+  if (!raw) return [];
+  // Parse lines like "  Label:   value  unit"
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  const metrics = [];
+  for (const line of lines) {
+    const colon = line.indexOf(':');
+    if (colon < 0) continue;
+    const label = line.slice(0, colon).trim()
+        .replace(/^[-–•*]?\s*/, '')
+        .replace(/\*\*/g, '');
+    const rest  = line.slice(colon + 1).trim().replace(/\*\*/g, '');
+    // Try to extract the first number-like token
+    const numMatch = rest.match(/[\$]?[\d,]+\.?\d*/);
+    const numStr = numMatch ? numMatch[0] : null;
+    const unit = rest.replace(numStr || '', '').trim().replace(/^mo\b/, 'months').slice(0, 40);
+    metrics.push({ label, value: numStr, unit, raw: rest });
+  }
+  return metrics;
+}
+
+function metricColor(label, value, rawLine) {
+  const v = parseFloat((value || '').replace(/[$,]/g,''));
+  const l = label.toLowerCase();
+  if (l.includes('safety') || l.includes('threshold')) return 'amber';
+  if (l.includes('baseline') || l.includes('current')) return 'blue';
+  if (l.includes('stress') || l.includes('worst') || l.includes('danger')) return 'red';
+  if (l.includes('pessim')) return 'amber';
+  if (rawLine && rawLine.includes('-')) return 'amber';
+  if (!isNaN(v) && v < 5) return 'red';
+  if (!isNaN(v) && v < 8) return 'amber';
+  return 'green';
+}
+
+function parseRisks(raw) {
+  if (!raw) return [];
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  const risks = [];
+  let current = null;
+  for (const line of lines) {
+    // Detect ALL_CAPS risk tags
+    const tagMatch = line.match(/^([A-Z_]{4,}(?:\s+[A-Z_]{3,})*)[:.]?(.*)$/);
+    if (tagMatch) {
+      if (current) risks.push(current);
+      current = { tag: tagMatch[1], text: tagMatch[2].trim().replace(/^[:\s]+/, ''), level: 'medium' };
+      if (['AR_VARIANCE','RUNWAY_BELOW_THRESHOLD','CUSTOMER_CONCENTRATION'].includes(tagMatch[1])) current.level = 'high';
+      if (['SEASONALITY','ONE_TIME_EXPENSE'].includes(tagMatch[1])) current.level = 'low';
+    } else if (current) {
+      current.text += ' ' + line;
+    } else {
+      risks.push({ tag: '', text: line, level: 'low' });
+    }
+  }
+  if (current) risks.push(current);
+  return risks;
+}
+
+function renderAnswer(text) {
+  const answerBlock = extractTag(text, 'answer') || text;
+
+  // Prefer XML tags; fall back to markdown headings.
+  let numbers   = extractTag(answerBlock, 'Numbers') || extractTag(answerBlock, 'numbers');
+  let tradeoffs = extractTag(answerBlock, 'Trade-offs') || extractTag(answerBlock, 'Tradeoffs') || extractTag(answerBlock, 'trade-offs');
+  let risks     = extractTag(answerBlock, 'Risks') || extractTag(answerBlock, 'risks');
+  let rec       = extractTag(answerBlock, 'Recommendation') || extractTag(answerBlock, 'recommendation');
+  let lead      = null;
+
+  if (!numbers && !tradeoffs && !risks && !rec) {
+    const md = extractMarkdownSections(answerBlock);
+    if (md) {
+      numbers = md.numbers || null;
+      tradeoffs = md.tradeoffs || null;
+      risks = md.risks || null;
+      rec = md.rec || null;
+      lead = md.lead || null;
+    }
+  }
+
+  // If still nothing structured, render as markdown-formatted prose.
+  if (!numbers && !tradeoffs && !risks && !rec) {
+    return `<div class="answer-body"><div class="rec-box">${mdToHtml(answerBlock)}</div></div>`;
+  }
+
+  let html = '<div class="answer-body">';
+
+  // Lead-in prose (before any section header)
+  if (lead) {
+    html += `<div class="rec-box" style="background:transparent;border:none;padding:0">${mdToHtml(lead)}</div>`;
+  }
+
+  // Numbers section → metric cards
+  if (numbers) {
+    const metrics = parseNumbers(numbers);
+    if (metrics.length > 0) {
+      html += `<div class="answer-section">
+        <div class="section-label">Key Numbers</div>
+        <div class="numbers-grid">`;
+      for (const m of metrics) {
+        const color = metricColor(m.label, m.value, m.raw);
+        const displayVal = m.value || m.raw.slice(0, 12);
+        const isMonths = m.raw.toLowerCase().includes('month') || m.label.toLowerCase().includes('runway');
+        const unit = isMonths ? 'mo' : '';
+        html += `<div class="metric-card">
+          <div class="metric-label">${esc(m.label)}</div>
+          <div class="metric-value ${color}">${esc(displayVal.replace('months','').trim())}</div>
+          <div class="metric-unit">${unit || esc(m.unit.slice(0,20))}</div>
+        </div>`;
+      }
+      html += '</div></div>';
+    } else {
+      html += `<div class="answer-section">
+        <div class="section-label">Key Numbers</div>
+        <div class="raw-text">${esc(numbers)}</div>
+      </div>`;
+    }
+  }
+
+  // Trade-offs
+  if (tradeoffs) {
+    const lines = tradeoffs.split('\n').map(l => l.trim().replace(/^[-–•*]\s*/,'')).filter(Boolean);
+    html += `<div class="answer-section">
+      <div class="section-label">Trade-offs</div>
+      <div class="tradeoffs-list">`;
+    for (const l of lines) {
+      html += `<div class="tradeoff-item">${mdToHtml(l).replace(/^<p>|<\/p>$/g,'')}</div>`;
+    }
+    html += '</div></div>';
+  }
+
+  // Risks
+  if (risks) {
+    const items = parseRisks(risks);
+    if (items.length) {
+      html += `<div class="answer-section">
+        <div class="section-label">Risk Flags</div>
+        <div class="risks-list">`;
+      for (const r of items) {
+        html += `<div class="risk-item ${r.level}">
+          <div>
+            ${r.tag ? `<span class="risk-tag">${esc(r.tag)}</span>` : ''}
+            ${mdToHtml(r.text).replace(/^<p>|<\/p>$/g,'')}
+          </div>
+        </div>`;
+      }
+      html += '</div></div>';
+    }
+  }
+
+  // Recommendation
+  if (rec) {
+    html += `<div class="answer-section">
+      <div class="section-label">Recommendation</div>
+      <div class="rec-box">${mdToHtml(rec)}</div>
+    </div>`;
+  }
+
+  html += '</div>';
+  return html;
+}
+
+function renderClarify(questions) {
+  let qs = questions.map(q => `<div class="clarify-q">${esc(q)}</div>`).join('');
+  return `<div class="clarify-card">
+    <div class="clarify-header">⚠ Clarification needed</div>
+    ${qs}
+    <div style="font-size:12px;color:var(--dim);margin-top:10px">
+      Reply with the missing details and I'll run the full analysis.
+    </div>
+  </div>`;
+}
+
+function renderOOS(reason) {
+  return `<div class="oos-card">
+    <div class="oos-header">Out of scope</div>
+    <div class="oos-text">${esc(reason)}</div>
+  </div>`;
+}
+
+// ── MAIN SEND ─────────────────────────────────────────────────────
+async function sendQuestion() {
+  if (busy) return;
+  const input = document.getElementById('question');
+  const q = input.value.trim();
+  if (!q) return;
+
+  busy = true;
+  input.value = '';
+  input.style.height = '';
+  document.getElementById('send').disabled = true;
+
+  appendUserMsg(q);
+  const agentDiv = appendAgentShell();
+  const cardId   = agentCardN;
+  const card     = document.getElementById('acard-' + cardId);
+  currentCard    = card;
+  currentToolsBar = document.getElementById('tools-' + cardId);
+
+  let thinking = card.querySelector('.thinking-bar');
+  let pendingPill = null;
+
+  try {
+    const resp = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q }),
+    });
+
+    if (!resp.ok) throw new Error(`Server error ${resp.status}`);
+
+    const reader = resp.body.getReader();
+    const dec    = new TextDecoder();
+    let buf      = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const parts = buf.split('\n\n');
+      buf = parts.pop();
+      for (const part of parts) {
+        if (!part.startsWith('data: ')) continue;
+        let event;
+        try { event = JSON.parse(part.slice(6)); } catch { continue; }
+        handleEvent(event, card, thinking, cardId);
+      }
+    }
+  } catch (err) {
+    if (thinking) thinking.remove();
+    card.innerHTML += `<div class="error-card">Error: ${esc(String(err))}</div>`;
+  } finally {
+    busy = false;
+    document.getElementById('send').disabled = false;
+    scrollDown();
+  }
+}
+
+function handleEvent(ev, card, thinking, cardId) {
+  switch (ev.type) {
+
+    case 'planner':
+      // Planner finished — remove thinking spinner, show tools bar
+      if (thinking) { thinking.style.display = 'none'; }
+      break;
+
+    case 'tool_call': {
+      if (thinking) thinking.style.display = 'none';
+      const name = ev.tool_name || ev.tool || 'tool';
+      activePill = addToolPill(name);
+      pendingPill = activePill;
+      break;
+    }
+
+    case 'tool_result': {
+      finishPill(pendingPill);
+      pendingPill = null;
+      // Extract runway from calculate_runway results to update header live
+      if (ev.tool_name === 'calculate_runway' && ev.result && ev.result.runway_months != null) {
+        updateRunwayUI(ev.result.runway_months, ev.result.below_safety_threshold);
+      }
+      break;
+    }
+
+    case 'answer': {
+      if (thinking) thinking.remove();
+      finishPill(pendingPill);
+      card.insertAdjacentHTML('beforeend', renderAnswer(ev.text || ''));
+      scrollDown();
+      // Refresh sidebar snapshot after a successful answer
+      fetch('/api/status').then(r=>r.json()).then(updateSidebar).catch(()=>{});
+      break;
+    }
+
+    case 'clarify': {
+      if (thinking) thinking.remove();
+      card.insertAdjacentHTML('beforeend', renderClarify(ev.questions || []));
+      scrollDown();
+      break;
+    }
+
+    case 'out_of_scope': {
+      if (thinking) thinking.remove();
+      card.insertAdjacentHTML('beforeend', renderOOS(ev.reason || ''));
+      scrollDown();
+      break;
+    }
+
+    case 'done': {
+      const cost = ev.cost_usd != null ? `$${Number(ev.cost_usd).toFixed(4)}` : '—';
+      const tok  = ev.input_tokens != null ? `${((ev.input_tokens + (ev.output_tokens||0))/1000).toFixed(1)}k tok` : '';
+      const lat  = ev.latency_s   != null ? `${ev.latency_s}s` : '';
+      const bar  = `<div class="meta-bar">
+        <span class="meta-item">💰 <strong>${cost}</strong></span>
+        ${tok ? `<span class="meta-item">📊 <strong>${tok}</strong></span>` : ''}
+        ${lat ? `<span class="meta-item">⏱ <strong>${lat}</strong></span>` : ''}
+      </div>`;
+      card.insertAdjacentHTML('beforeend', bar);
+      scrollDown();
+      break;
+    }
+
+    case 'error': {
+      if (thinking) thinking.remove();
+      card.insertAdjacentHTML('beforeend', `<div class="error-card">⚠ ${esc(ev.message||'unknown error')}</div>`);
+      scrollDown();
+      break;
+    }
+
+    case 'executor_msg':
+      // silent — tool_call / tool_result cover the visible feedback
+      break;
+
+    case 'guardrail': {
+      const g = document.createElement('div');
+      g.style.cssText = 'padding:8px 16px;font-size:11px;color:var(--amber)';
+      g.textContent = `⚠ Guardrail tripped: ${ev.reason || ''}`;
+      card.appendChild(g);
+      scrollDown();
+      break;
+    }
+  }
+}
+</script>
+</body>
+</html>

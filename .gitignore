@@ -1,0 +1,30 @@
+# Secrets & local config
+.claude/settings.local.json
+.env
+.env.*
+*.key
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Databases & local data
+*.db
+*.sqlite
+*.sqlite3
+data/*.db
+
+# Node (frontend build)
+node_modules/
+.next/
+dist/
+
+# Logs & OS
+*_log.txt
+*.log
+.DS_Store
+Thumbs.db
